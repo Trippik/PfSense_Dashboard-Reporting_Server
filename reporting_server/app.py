@@ -106,6 +106,15 @@ def append_logs_df(tup, df):
     df = df.append(pd.Series([tup[0].strftime("%Y-%m-%d %H:%M:%S"), tup[1], tup[2], tup[3], tup[4], tup[5], tup[6], tup[7], tup[8], tup[9], tup[10], tup[11], tup[12], tup[13], tup[14]], index=df.columns), ignore_index=True)
     return(df)
 
+def create_open_vpn_login_df():
+    df = pd.DataFrame(columns=["VPN User", "Last Logon Date", "Last Logon Instance"])
+    return(df)
+
+#Adds tuple values as row to standardized logs dataframe
+def append_open_vpn_login_df(tup, df):
+    df = df.append(pd.Series([tup[0], tup[1], tup[2]], index=df.columns), ignore_index=True)
+    return(df)
+
 #----------------------------------------------------
 #PRIMARY FUNCTIONS
 #----------------------------------------------------
@@ -187,6 +196,51 @@ def run_combined_errors_report():
         df.to_csv(path, index=False)
         combined_errors_report_email(client, path, percent_error, total_logs)
 
+def openvpn_usage_report():
+    open_vpn_user_query = "SELECT id, user_name FROM vpn_user"
+    last_logon_query = """SELECT record_time, pfsense_instance FROM open_vpn_access_log WHERE vpn_user = {} ORDER BY record_time DESC LIMIT 1"""
+    instance_query = """SELECT pfsense_name FROM pfsense_instances WHERE id = {}"""
+    open_vpn_users = query_db(open_vpn_user_query)
+    now = datetime.datetime.now()
+    day_plus_since_logon = []
+    not_logged = 0
+    logged = 0
+    for open_vpn_user in open_vpn_users:
+        last_logon, instance = query_db(last_logon_query.format(str(open_vpn_user[0])))[0]
+        delta = now - last_logon
+        if(delta.days > 1):
+            not_logged = not_logged + 1
+            instance_name = query_db(instance_query.format(str(instance)))[0][0]
+            day_plus_since_logon = day_plus_since_logon + [[open_vpn_user[1], last_logon.strftime("%Y-%m-%d %H:%M:%S"), instance_name]]
+        else:
+            logged = logged + 1
+    return(logged, not_logged, day_plus_since_logon)
+
+def open_vpn_report_email(path, logged_in, not_logged_in):
+    recievers_query = """SELECT 
+    reciever_name, 
+    reciever_address 
+    FROM open_vpn_report_recievers 
+    """
+    recievers = query_db(recievers_query)
+    message = """Hi {},\n
+{} users have logged in to the Open VPN server today, with {} users not having logged in for a day or more.\n
+Please see the CSV report attached of which users have not logged in for a day or more, and their last login date\n
+-PfSense Dashboard Reporting"""
+    subject = "Daily OpenVPN Report"
+    for reciever in recievers:
+        email_attachment(message.format(reciever[0], str(logged_in), str(not_logged_in)), reciever[1], subject, path)
+
+def run_open_vpn_usage_report():
+    logged, not_logged, day_plus_since_logon = openvpn_usage_report()
+    day_since_logon_df = create_open_vpn_login_df()
+    for entry in day_plus_since_logon:
+        day_since_logon_df = append_open_vpn_login_df(entry, day_since_logon_df)
+    path = os.path.join(reports_dir + "/open_vpn_usage_report.csv")
+    day_since_logon_df.to_csv(path, index=False)
+    open_vpn_report_email(path, logged, not_logged)
+    
+
 #----------------------------------------------------
 #MAIN LOOP
 #----------------------------------------------------
@@ -197,6 +251,8 @@ while(loop == True):
         if(run_state == 0):
             logging.warning("Running Combined Errors Reports")
             run_combined_errors_report()
+            logging.warning("Running OpenVPN Usage Report")
+            run_open_vpn_usage_report()
             run_state = 1
     elif(int(datetime.datetime.now().strftime("%H")) != int(os.environ["REPORTING_HOUR"]) and run_state == 1):
         run_state = 0

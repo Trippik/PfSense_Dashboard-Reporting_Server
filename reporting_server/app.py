@@ -217,19 +217,22 @@ def openvpn_usage_report():
     return(logged, not_logged, day_plus_since_logon)
 
 def open_vpn_report_email(path, logged_in, not_logged_in):
-    recievers_query = """SELECT 
-    reciever_name, 
-    reciever_address 
-    FROM open_vpn_report_recievers 
-    """
-    recievers = query_db(recievers_query)
-    message = """Hi {},\n
-{} users have logged in to the Open VPN server today, with {} users not having logged in for a day or more.\n
-Please see the CSV report attached of which users have not logged in for a day or more, and their last login date\n
--PfSense Dashboard Reporting"""
-    subject = "Daily OpenVPN Report"
-    for reciever in recievers:
-        email_attachment(message.format(reciever[0], str(logged_in), str(not_logged_in)), reciever[1], subject, path)
+    try:
+        recievers_query = """SELECT 
+        reciever_name, 
+        reciever_address 
+        FROM open_vpn_report_recievers 
+        """
+        recievers = query_db(recievers_query)
+        message = """Hi {},\n
+    {} users have logged in to the Open VPN server today, with {} users not having logged in for a day or more.\n
+    Please see the CSV report attached of which users have not logged in for a day or more, and their last login date\n
+    -PfSense Dashboard Reporting"""
+        subject = "Daily OpenVPN Report"
+        for reciever in recievers:
+            email_attachment(message.format(reciever[0], str(logged_in), str(not_logged_in)), reciever[1], subject, path)
+    except:
+        pass
 
 def run_open_vpn_usage_report():
     logged, not_logged, day_plus_since_logon = openvpn_usage_report()

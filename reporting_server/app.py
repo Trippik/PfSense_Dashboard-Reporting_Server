@@ -206,14 +206,17 @@ def openvpn_usage_report():
     not_logged = 0
     logged = 0
     for open_vpn_user in open_vpn_users:
-        last_logon, instance = query_db(last_logon_query.format(str(open_vpn_user[0])))[0]
-        delta = now - last_logon
-        if(delta.days > 1):
-            not_logged = not_logged + 1
-            instance_name = query_db(instance_query.format(str(instance)))[0][0]
-            day_plus_since_logon = day_plus_since_logon + [[open_vpn_user[1], last_logon.strftime("%Y-%m-%d %H:%M:%S"), instance_name]]
-        else:
-            logged = logged + 1
+        try:
+            last_logon, instance = query_db(last_logon_query.format(str(open_vpn_user[0])))[0]
+            delta = now - last_logon
+            if(delta.days > 1):
+                not_logged = not_logged + 1
+                instance_name = query_db(instance_query.format(str(instance)))[0][0]
+                day_plus_since_logon = day_plus_since_logon + [[open_vpn_user[1], last_logon.strftime("%Y-%m-%d %H:%M:%S"), instance_name]]
+            else:
+                logged = logged + 1
+        except:
+            pass
     return(logged, not_logged, day_plus_since_logon)
 
 def open_vpn_report_email(path, logged_in, not_logged_in):
@@ -235,13 +238,16 @@ def open_vpn_report_email(path, logged_in, not_logged_in):
         pass
 
 def run_open_vpn_usage_report():
-    logged, not_logged, day_plus_since_logon = openvpn_usage_report()
-    day_since_logon_df = create_open_vpn_login_df()
-    for entry in day_plus_since_logon:
-        day_since_logon_df = append_open_vpn_login_df(entry, day_since_logon_df)
-    path = os.path.join(reports_dir + "/open_vpn_usage_report.csv")
-    day_since_logon_df.to_csv(path, index=False)
-    open_vpn_report_email(path, logged, not_logged)
+    try:
+        logged, not_logged, day_plus_since_logon = openvpn_usage_report()
+        day_since_logon_df = create_open_vpn_login_df()
+        for entry in day_plus_since_logon:
+            day_since_logon_df = append_open_vpn_login_df(entry, day_since_logon_df)
+        path = os.path.join(reports_dir + "/open_vpn_usage_report.csv")
+        day_since_logon_df.to_csv(path, index=False)
+        open_vpn_report_email(path, logged, not_logged)
+    except:
+        pass
     
 
 #----------------------------------------------------

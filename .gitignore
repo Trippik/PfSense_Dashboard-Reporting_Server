@@ -1,0 +1,4 @@
+build/
+dist/
+PfSense_Dashboard_Data_Reporting_Server.egg-info/
+__pycache__/

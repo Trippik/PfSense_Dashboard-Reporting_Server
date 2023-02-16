@@ -4,7 +4,7 @@ import os
 def pull_db_details():
     return (os.environ["DB_IP"],os.environ["DB_USER"],os.environ["DB_PASS"],os.environ["DB_SCHEMA"],os.environ["DB_PORT"])
 
-def create_db_connection(db_host, db_user, db_password, db_schema, db_port):
+def create_db_connection():
     db_details = pull_db_details()
     db = mysql.connector.connect(
         host=db_details[0],

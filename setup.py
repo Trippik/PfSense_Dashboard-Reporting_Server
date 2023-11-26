@@ -5,7 +5,7 @@ with open('requirements.txt') as f:
 
 setup(
     name="PfSense_Dashboard-Data_Reporting_Server",
-    version="1.0.x",
+    version="1.2",
     author="Cameron Trippick",
     install_requires=requirements,
     packages=['reporting_server', 'reporting_server.lib'],

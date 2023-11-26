@@ -1,10 +1,10 @@
-FROM ubuntu:23.04
+FROM alpine:latest
 
-MAINTAINER Cameron Trippick "trippickc@gmail.com"
+RUN apk update
 
-RUN apt-get update -y && \
-    apt-get install -y python3-pip python3-dev
+RUN apk add python3
 
+RUN apk add py-pip
 
 COPY ./requirements.txt /requirements.txt
 
